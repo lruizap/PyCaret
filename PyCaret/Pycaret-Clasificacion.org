@@ -1,0 +1,504 @@
+#+TITLE:
+#+AUTHOR:
+#+EMAIL:
+#+DATE:
+#+OPTIONS: texht:t toc:3 num:3 -:nil ^:{} ":nil ':nil
+#+OPTIONS: tex:t
+#+LATEX_CLASS: article
+#+LATEX_HEADER:
+#+LANGUAGE: es
+
+#+BEGIN_COMMENT
+#+LATEX_HEADER: \usepackage[AUTO]{babel}
+#+END_COMMENT
+
+#+LATEX_HEADER_EXTRA: \usepackage{mdframed}
+#+LATEX_HEADER_EXTRA: \BeforeBeginEnvironment{minted}{\begin{mdframed}}
+#+LATEX_HEADER_EXTRA: \AfterEndEnvironment{minted}{\end{mdframed}}
+
+#+LATEX: \setlength\parindent{10pt}
+#+LATEX_HEADER: \usepackage{parskip}
+
+#+latex_header: \usepackage[utf8]{inputenc} %% For unicode chars
+#+LATEX_HEADER: \usepackage{placeins}
+
+#+LATEX_HEADER: \usepackage[margin=2.50cm]{geometry}
+
+#+LaTeX_HEADER: \usepackage[T1]{fontenc}
+#+LaTeX_HEADER: \usepackage{mathpazo}
+#+LaTeX_HEADER: \linespread{1.05}
+#+LaTeX_HEADER: \usepackage[scaled]{helvet}
+#+LaTeX_HEADER: \usepackage{courier}
+
+#+LaTeX_HEADER: \hypersetup{colorlinks=true,linkcolor=blue}
+#+LATEX_HEADER: \RequirePackage{fancyvrb}
+#+LATEX_HEADER: \DefineVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\small,formatcom = {\color[rgb]{0.5,0,0}}}
+
+* PyCaret
+PyCaret es una biblioteca de aprendizaje automático de código abierto
+y de bajo código en Python que automatiza el proceso de aprendizaje
+automático. Está diseñado para hacer que el proceso de construcción,
+entrenamiento y despliegue de modelos de aprendizaje automático sea
+más fácil y más rápido. Con PyCaret, puede construir, entrenar y
+desplegar rápidamente modelos de aprendizaje automático con sólo unas
+pocas líneas de código. Proporciona una completa suite de funciones
+para preprocesamiento, ingeniería de características, selección de
+modelos y evaluación de modelos. PyCaret también incluye herramientas
+para ajustar automáticamente los hiperparámetros, crear modelos en
+ensamblado y el despliegue de modelos en producción.
+
+PyCaret es un envoltorio de Python sobre otras librerías tales como
+scikit-learn, XGBoost, LightGBM, CatBoost, spaCy, Optuna, Hyperopt,
+Ray y algunas más.
+
+El diseño y la simplicidad de PyCaret están inspirados en el papel
+emergente de los científicos de datos ciudadanos, un término utilizado
+por primera vez por Gartner. Los científicos de datos ciudadanos son
+usuarios avanzados que pueden realizar tareas analíticas simples y
+moderadamente sofisticadas que anteriormente habrían requerido más
+experiencia técnica.
+
+La mayoría de los profesionales del aprendizaje automático comienzan a
+experimentar con la establecida biblioteca scikit-learn, pero existe
+una alternativa más sencilla y accesible: PyCaret.
+
+Esta biblioteca tiene muchas ventajas en comparación con scikit-learn,
+especialmente para personas con experiencia limitada. Ahora veremos
+una descripción general de las características principales de PyCaret,
+así como un estudio de un caso centrado en la regresión. Sugiero
+instalar la última versión de Anaconda en Windows/macOS/Linux para
+seguir este tutorial, pero también es compatible con Google
+Colab. Puedes ejecutar el código en un cuaderno Jupyter o usar tu IDE
+preferido.
+
+* Instalar PyCaret
+** Con «conda»
+#+begin_src bash
+conda install -c conda-forge pycaret
+#+end_src
+
+** Con pip
+#+begin_src bash
+# create a conda environment
+conda create --name yourenvname python=3.8
+
+# activate conda environment
+conda activate yourenvname
+
+# install pycaret
+pip install pycaret
+
+# create notebook kernel
+python -m ipykernel install --user --name yourenvname --display-name "display-name"
+#+end_src
+
+** Version pre-release (con soporte para python 3.10, se supone)
+#+begin_src bash
+pip install -U --pre pycaret
+#+end_src
+
+** Desde el código fuente
+#+begin_src bash
+pip install git+https://github.com/pycaret/pycaret.git#egg=pycaret
+#ejecutar test
+pytest pycaret
+#+end_src
+
+** Con docker
+Docker usa contenedores para crear entornos virtuales que aíslan una
+instalación de PyCaret del resto del sistema. El contenedor docker de
+PyCaret viene con un entorno Notebook preinstalado, que puede
+compartir recursos con su máquina host (acceder a directorios, usar la
+GPU, conectarse a Internet, etc.). Las imágenes de PyCaret Docker se
+prueban para cada versión.
+
+#+begin_src bash
+docker run -p 8888:8888 pycaret/slim
+#+end_src
+
+Para una imagen con la versión completa de la imagen docker:
+#+begin_src bash
+docker run -p 8888:8888 pycaret/full
+#+end_src
+
+Ejecutar docker con un volumen externo, por ejemplo donde vayamos a
+tener el proyecto, en este caso he puesto el directorio actual de
+trabajo:
+#+begin_src bash
+docker run --name pycaret -v $PWD:/home/jovyan/work -p 8888:8888 pycaret/full
+#+end_src
+
+
+
+* El Módulo de Clasificación de PyCaret
+En este tutorial, aprenderemos a utilizar el módulo de clasificación de
+PyCaret para crear modelos de clasificación a partir de datos.
+
+La clasificación es una tarea básica de aprendizaje automático
+supervisado que asigna una etiqueta a cada observación de un conjunto
+de datos. Las etiquetas pueden ser binarias, categóricas o ordinales.
+
+El módulo de clasificación de PyCaret, que usa sklearn bajo el capó,
+le permite crear y probar modelos de clasificación con unas pocas
+líneas de código. Incluye una variedad de algoritmos, así como la
+capacidad de trazar y ajustar hiperparámetros.
+
+Vamos a examinar un caso de estudio de clasificación basado en el
+módulo de clasificación de PyCaret.
+
+** Cargando los datos  —Dataset Iris—
+Utilizaremos el conjunto de datos de Iris, que contiene información
+sobre las características de tres especies de iris: setosa, versicolor
+y virginica.
+
+El conjunto de datos de Iris es un conjunto de datos de aprendizaje
+automático supervisado clásico que se utiliza a menudo para probar
+nuevos algoritmos de aprendizaje automático. El conjunto de datos
+contiene 150 observaciones de flores de iris, cada una con cuatro
+características:
+
+ - *Longitud del sépalo:* La longitud del sépalo es la longitud de la
+   parte verde inferior de la flor.
+ - *Ancho del sépalo:* El ancho del sépalo es el ancho de la parte
+   verde inferior de la flor.
+ - *Longitud del pétalo:* La longitud del pétalo es la longitud de la
+   parte colorida de la flor.
+ - *Ancho del pétalo:* El ancho del pétalo es el ancho de la parte
+   colorida de la flor.
+
+Las cuatro características se utilizan para predecir la especie de
+iris de la flor. Hay tres especies de iris: setosa, versicolor y
+virginica.
+
+El conjunto de datos de Iris es un conjunto de datos de aprendizaje
+automático muy útil para probar nuevos algoritmos. Es relativamente
+pequeño y fácil de entender, pero aún así es lo suficientemente
+complejo como para que sea un desafío para los algoritmos de
+aprendizaje automático.
+
+Aquí hay un resumen de las características del conjunto de datos de
+Iris:
+
+ - *Número de observaciones:* 150
+ - *Número de características:* 4
+ - *Tipo de datos de las características:* 4 numéricas
+ - *Número de clases:* 3
+ - *Distribución de las clases:* 50 setosas, 50 versicolores y 50 virginicas
+
+
+El primer paso es cargar los datos. Podemos hacerlo utilizando la
+función read_csv() de la biblioteca pandas:
+
+
+#+BEGIN_SRC python :exports both :results output
+from pycaret.datasets import get_data
+# Cargar los datos
+data = get_data('iris')
+#+END_SRC
+
+#+RESULTS:
+:    sepal_length  sepal_width  petal_length  petal_width      species
+: 0           5.1          3.5           1.4          0.2  Iris-setosa
+: 1           4.9          3.0           1.4          0.2  Iris-setosa
+: 2           4.7          3.2           1.3          0.2  Iris-setosa
+: 3           4.6          3.1           1.5          0.2  Iris-setosa
+: 4           5.0          3.6           1.4          0.2  Iris-setosa
+
+
+Ejemplo de datos:
+#+ATTR_LaTeX: :align |c|c|c|c|c|c|
+|---+--------------+-------------+--------------+-------------+-------------|
+|   | sepal_length | sepal_width | petal_length | petal_width | species     |
+|---+--------------+-------------+--------------+-------------+-------------|
+| 0 |          5.1 |         3.5 |          1.4 |         0.2 | Iris-setosa |
+|---+--------------+-------------+--------------+-------------+-------------|
+| 1 |          4.9 |         3.0 |          1.4 |         0.2 | Iris-setosa |
+|---+--------------+-------------+--------------+-------------+-------------|
+| 2 |          4.7 |         3.2 |          1.3 |         0.2 | Iris-setosa |
+|---+--------------+-------------+--------------+-------------+-------------|
+| 3 |          4.6 |         3.1 |          1.5 |         0.2 | Iris-setosa |
+|---+--------------+-------------+--------------+-------------+-------------|
+| 4 |          5.0 |         3.6 |          1.4 |         0.2 | Iris-setosa |
+|---+--------------+-------------+--------------+-------------+-------------|
+
+
+#+begin_src python :exports both :results output
+data.info()
+#+end_src
+
+
+*** Análisis Exploratorio de Datos —Exploratory Data Analysis (EDA)—
+    :PROPERTIES:
+    :CUSTOM_ID: análisis-exploratorio-de-datos-eda
+    :END:
+
+Después de cargar el conjunto de datos, normalmente necesitaremos
+examinar y comprender sus propiedades básicas, y antes de crear
+nuestro modelo, es importante realizar un análisis exploratorio de
+datos (EDA) para comprender los datos y identificar posibles
+problemas.
+
+
+En este caso, podemos realizar las siguientes EDA:
+
+- *Ver los datos*
+#+BEGIN_SRC python :exports both :results output
+print(data.head())
+#+END_SRC
+
+- *Describir los datos*
+#+BEGIN_SRC python :exports both :results output
+print(data.describe())
+#+END_SRC
+
+- *Ver la distribución de las características*
+
+#+begin_src python :exports results :results output file :file iris_histograms.png :output-dir images/
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import sys
+
+# Carga el conjunto de datos Iris
+from pycaret.datasets import get_data
+
+data = get_data('iris')
+sns.set_style('darkgrid')
+colors = ['#851836', '#EDBD17', '#0E1428', '#407076', '#4C5B61']
+sns.set_palette(sns.color_palette(colors))
+
+
+# Crea un subplot de 2x2
+fig, axs = plt.subplots(2, 2)
+
+# Crea un sns.histplot de la longitud del sépalo para cada clase de iris
+sns.histplot(data=data, x="sepal_length", hue="species", ax=axs[0, 0], bins=10, kde=True)
+
+# Crea un sns.histplot del ancho del sépalo para cada clase de iris
+sns.histplot(data=data, x="sepal_width", hue="species", ax=axs[0, 1], bins=10, kde=True)
+
+# Crea un sns.histplot de la longitud del pétalo para cada clase de iris
+sns.histplot(data=data, x="petal_length", hue="species", ax=axs[1, 0], bins=10, kde=True)
+
+# Crea un sns.histplot del ancho del pétalo para cada clase de iris
+sns.histplot(data=data, x="petal_width", hue="species", ax=axs[1, 1], bins=10, kde=True)
+
+# Personaliza los ejes
+for ax in axs.flat:
+    ax.set_ylabel("Frecuencia")
+    ax.set_xlabel("Valor")
+
+# Guarda la figura
+#plt.savefig("iris_histograms.png")
+plt.tight_layout()
+plt.savefig(sys.stdout.buffer)
+
+# Muestra la figura
+#plt.show()
+#+end_src
+
+#+RESULTS:
+[[file:images/iris_histograms.png]]
+
+
+#+begin_src python :exports results :results output file :file iris_boxplots.png :output-dir images/
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pycaret.datasets import get_data
+import sys
+
+data = get_data('iris')
+sns.set_style('darkgrid')
+colors = ['#851836', '#EDBD17', '#0E1428', '#407076', '#4C5B61']
+sns.set_palette(sns.color_palette(colors))
+
+#Crea un subplot de 2x2
+fig, axs = plt.subplots(2, 2)
+
+# Crea un boxplot de la longitud del sépalo para cada clase de iris
+sns.boxplot(x="species", y="sepal_length", data=data,ax=axs[0, 0])
+
+# Crea un boxplot del ancho del sépalo para cada clase de iris
+sns.boxplot(x="species", y="sepal_width", data=data,ax=axs[0, 1])
+
+# Crea un boxplot de la longitud del pétalo para cada clase de iris
+sns.boxplot(x="species", y="petal_length", data=data,ax=axs[1, 0])
+
+# Crea un boxplot del ancho del pétalo para cada clase de iris
+sns.boxplot(x="species", y="petal_width", data=data,ax=axs[1, 1])
+# Guarda la figura
+#plt.savefig("iris_histograms.png")
+plt.tight_layout()
+plt.savefig(sys.stdout.buffer)
+#+end_src
+
+#+RESULTS:
+[[file:images/iris_boxplots.png]]
+
+- *Comparar las características entre las clases*
+#+BEGIN_SRC python :exports both :results output
+import pandas as pd
+from pycaret.datasets import get_data
+
+import pycaret
+
+# Load the Iris dataset
+data = get_data('iris')
+
+# Calculate the mean of each column for each species
+for col in data.columns:
+    pivot_table = data.pivot_table(values=col, index="species", aggfunc=pd.DataFrame.mean)
+    print(pivot_table)
+#+END_SRC
+
+#+RESULTS:
+:    sepal_length  sepal_width  petal_length  petal_width      species
+: 0           5.1          3.5           1.4          0.2  Iris-setosa
+: 1           4.9          3.0           1.4          0.2  Iris-setosa
+: 2           4.7          3.2           1.3          0.2  Iris-setosa
+: 3           4.6          3.1           1.5          0.2  Iris-setosa
+: 4           5.0          3.6           1.4          0.2  Iris-setosa
+
+*** 3.3 Inicializar un Entorno (environment) PyCaret
+    :PROPERTIES:
+    :CUSTOM_ID: inicializar-un-entorno-environment-pycaret
+    :END:
+La función ~setup()~ de PyCaret inicializa el entorno y prepara la
+implementación y los datos de modelado de aprendizaje automático. Hay
+dos parámetros necesarios, un conjunto de datos y la variable
+objetivo. Después de ejecutar la función, se infiere el tipo de cada
+característica y se realizan varias tareas de preprocesamiento en los
+datos.
+
+#+BEGIN_SRC python :exports both :results output
+from pycaret.classification import setup
+
+# Inicializar el entorno
+clf = setup(data, target = 'species', train_size = 0.8, session_id = 123, normalize = True)
+#+END_SRC
+
+*** 3.4 Ver los datos preprocesados
+    :PROPERTIES:
+    :CUSTOM_ID: ver-los-datos-preprocesados
+    :END:
+
+PyCaret realiza un preprocesamiento de los datos de forma automática.
+Podemos ver los datos preprocesados utilizando el siguiente código:
+
+#+BEGIN_SRC python :exports both :results output
+print(clf.data.head())
+#+END_SRC
+
+#+begin_src python :exports both :results output
+get_config('X')
+#+end_src
+
+#+RESULTS:
+
+
+*** 3.5 Comparando diferentes modelos
+    :PROPERTIES:
+    :CUSTOM_ID: comparando-diferentes-modelos
+    :END:
+
+PyCaret proporciona una serie de modelos de clasificación que podemos
+utilizar. Podemos comparar estos modelos utilizando el siguiente código:
+
+#+BEGIN_SRC python
+models = clf.compare_models()
+
+# Imprimir los resultados de la comparación
+print(models)
+#+END_SRC
+
+*** 3.6 Creación de un modelo con PyCaret
+    :PROPERTIES:
+    :CUSTOM_ID: creación-de-un-modelo-con-pycaret
+    :END:
+
+Una vez que hayamos comparado los diferentes modelos, podemos crear un
+modelo específico utilizando el siguiente código:
+
+#+BEGIN_SRC python
+# Crear un modelo de Random Forest
+rf = clf.create_model("rf")
+#+END_SRC
+
+*** 3.7 Ajustar un modelo
+    :PROPERTIES:
+    :CUSTOM_ID: ajustar-un-modelo
+    :END:
+
+Antes de poder utilizar nuestro modelo para hacer predicciones, debemos
+ajustarlo a los datos de entrenamiento. Esto se realiza utilizando el
+siguiente código:
+
+#+BEGIN_SRC python
+  # Ajustar el modelo
+  rf.fit()
+#+END_SRC
+
+*** 3.8 Trazar/dibujar el rendimiento del modelo
+    :PROPERTIES:
+    :CUSTOM_ID: trazardibujar-el-rendimiento-del-modelo
+    :END:
+
+Podemos trazar el rendimiento de nuestro modelo utilizando el siguiente
+código:
+
+#+BEGIN_SRC python
+  # Trazar el rendimiento del modelo
+  rf.plot_model()
+#+END_SRC
+
+*** 3.9 Hacer predicciones sobre nuevos datos
+    :PROPERTIES:
+    :CUSTOM_ID: hacer-predicciones-sobre-nuevos-datos
+    :END:
+
+Una vez que nuestro modelo esté ajustado, podemos utilizarlo para hacer
+predicciones sobre nuevos datos. Esto se realiza utilizando el siguiente
+código:
+
+#+BEGIN_SRC python
+  # Hacer predicciones sobre nuevos datos
+**** predictions = rf.predict(data.drop("species", axis=1))
+#+END_SRC
+
+*** 3.10 Interpretación del modelo (SHAP module)
+    :PROPERTIES:
+    :CUSTOM_ID: interpretación-del-modelo-shap-module
+    :END:
+
+Podemos interpretar nuestro modelo utilizando el módulo SHAP. Esto nos
+ayudará a comprender las características que son más importantes para
+las predicciones del modelo.
+
+#+BEGIN_SRC python
+  # Importar el módulo SHAP
+  from pycaret.explainers import shap
+
+  # Obtener las explicaciones del modelo
+  shap_values = shap.explain_model(rf, data.drop("Survived", axis=1))
+#+END_SRC
+
+Podemos visualizar las explicaciones del modelo utilizando el siguiente
+código:
+
+#+BEGIN_SRC python
+  # Visualizar las explicaciones del modelo
+  shap.plots.bar(shap_values)
+#+END_SRC
+
+*** 3.11 Despliegue(deploy) del modelo
+    :PROPERTIES:
+    :CUSTOM_ID: desplieguedeploy-del-modelo
+    :END:
+
+Una vez que nuestro modelo esté listo, podemos desplegarlo para
+utilizarlo en producción. Esto se puede hacer utilizando una variedad de
+métodos, como Docker, Kubernetes o Flask.
+
+En este tutorial, hemos aprendido a utilizar el módulo de clasificación
+de PyCaret para crear modelos de clasificación a partir de datos.
